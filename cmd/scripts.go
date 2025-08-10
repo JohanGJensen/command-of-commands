@@ -1,58 +1,83 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"os/exec"
+	"strings"
+
+	"command-of-commands/models"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
 )
 
-type ScriptContent struct {
-	Scripts map[string]string `json:"scripts"`
+type CommandObject struct {
+	Key   string
+	Value string
 }
 
-func findScriptsInFile(file []byte) ScriptContent {
-	var content ScriptContent
-
-	err := json.Unmarshal(file, &content)
-	if err != nil {
-		fmt.Print("Failed to marshal JSON from file.")
-		os.Exit(1)
-	}
-
-	return content
-}
-
-func scripts() (result string) {
-	file, err := os.ReadFile("package.json")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "No file named 'package.json' in this directory: '%s'\n", err)
-		os.Exit(1)
-	}
-
-	scripts := findScriptsInFile(file).Scripts
-
+func runSelectPrompt(pkgJson models.PackageJson) string {
+	scripts := pkgJson.Scripts
 	keys := make([]string, 0, len(scripts))
 	values := make([]string, 0, len(scripts))
+
 	for k, v := range scripts {
 		keys = append(keys, k)
 		values = append(values, v)
 	}
 
-	prompt := promptui.Select{
+	selectPrompt := promptui.Select{
 		Label: "Select script command:",
 		Items: keys,
 	}
-	index, _, errPrompt := prompt.Run()
-	if errPrompt != nil {
-		fmt.Printf("Prompt failed %v\n", errPrompt)
-		return
+	index, _, err := selectPrompt.Run()
+	if err != nil {
+		log.Fatalf("Prompt failed %v\n", err)
 	}
 
 	return values[index]
+}
+
+func confirmSelectPrompt(cmd string) string {
+	confirmPrompt := promptui.Prompt{
+		Label: fmt.Sprintf("Are you sure you want to run: %s (y/n)", cmd),
+		Validate: func(input string) error {
+			if input != "y" && input != "n" {
+				return fmt.Errorf("please enter y or n")
+			}
+			return nil
+		},
+	}
+	r, err := confirmPrompt.Run()
+	if err != nil {
+		log.Fatalf("Prompt failed %v\n", err)
+	}
+
+	if strings.ToLower(r) == "y" {
+		log.Println("Confirmed!")
+	} else {
+		log.Println("Cancelled.")
+		os.Exit(1)
+	}
+
+	return cmd
+}
+
+func getCmdFromPackageJSON() (result string) {
+	file, err := os.ReadFile("package.json")
+	if err != nil {
+		log.Fatalf("No file named 'package.json' in this directory: '%s'\n", err)
+	}
+
+	var pkgJson models.PackageJson
+	pkgJson.SetScripts(file)
+
+	selectedCmd := runSelectPrompt(pkgJson)
+	confirmedCmd := confirmSelectPrompt(selectedCmd)
+
+	return confirmedCmd
 }
 
 var scriptsCmd = &cobra.Command{
@@ -60,7 +85,7 @@ var scriptsCmd = &cobra.Command{
 	Short: "",
 	Long:  "",
 	Run: func(cmd *cobra.Command, args []string) {
-		command := scripts()
+		command := getCmdFromPackageJSON()
 		/**
 		 * Passing a command as a single string like this is not a safe pattern.
 		 * Risk of shell injection.
@@ -68,7 +93,9 @@ var scriptsCmd = &cobra.Command{
 		 */
 		err := exec.Command("bash", "-c", command).Run()
 		if err != nil {
-			fmt.Println("could not run command: ", err)
+			log.Fatalln("could not run command: ", err)
 		}
+
+		os.Exit(1)
 	},
 }
