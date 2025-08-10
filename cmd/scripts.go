@@ -82,8 +82,8 @@ func getCmdFromPackageJSON() (result string) {
 
 var scriptsCmd = &cobra.Command{
 	Use:   "scripts",
-	Short: "",
-	Long:  "",
+	Short: "Lists all script commands from package.json file",
+	Long:  "Lists all script commands from package.json file",
 	Run: func(cmd *cobra.Command, args []string) {
 		command := getCmdFromPackageJSON()
 		/**
