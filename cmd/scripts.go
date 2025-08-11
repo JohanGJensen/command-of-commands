@@ -40,7 +40,7 @@ func runSelectPrompt(pkgJson models.PackageJson) string {
 	return values[index]
 }
 
-func confirmSelectPrompt(cmd string) string {
+func runConfirmSelectPrompt(cmd string) string {
 	confirmPrompt := promptui.Prompt{
 		Label: fmt.Sprintf("Are you sure you want to run: %s (y/n)", cmd),
 		Validate: func(input string) error {
@@ -75,7 +75,7 @@ func getCmdFromPackageJSON() (result string) {
 	pkgJson.SetScripts(file)
 
 	selectedCmd := runSelectPrompt(pkgJson)
-	confirmedCmd := confirmSelectPrompt(selectedCmd)
+	confirmedCmd := runConfirmSelectPrompt(selectedCmd)
 
 	return confirmedCmd
 }
