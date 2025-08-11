@@ -1,5 +1,7 @@
 # Command of commands (coc)
 
+A CLI tool written in GO that lets you list and select script commands directly from the terminal rather than inspecting the package.json file.
+
 ## Just to be clear
 This functionality already largely exists in all of the major node package managers:
 
