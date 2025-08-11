@@ -1,5 +1,16 @@
 # Command of commands (coc)
 
+## Just to be clear
+This functionality already largely exists in all of the major node package managers:
+
+```sh
+yarn run
+npm run
+pnpm run
+```
+
+Where command-of-commands differ, is that you select and run the command immediately and, eventually (WIP) list all commands from all package.json files recursively in a project.
+
 ## Build & install
 --more to come--
 
