@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"command-of-commands/models"
+	p "command-of-commands/models"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -18,8 +18,8 @@ type CommandObject struct {
 	Value string
 }
 
-func runSelectPrompt(pkgSlice models.PackageJsonSlice) string {
-	scripts := pkgSlice.GetAllScripts()
+func runSelectPrompt(pkgFiles p.PackageJsonFiles) string {
+	scripts := pkgFiles.GetAllScripts()
 	keys := make([]string, 0, len(scripts))
 	values := make([]string, 0, len(scripts))
 
@@ -31,6 +31,7 @@ func runSelectPrompt(pkgSlice models.PackageJsonSlice) string {
 	selectPrompt := promptui.Select{
 		Label: "Select script command:",
 		Items: keys,
+		Size:  20,
 	}
 	index, _, err := selectPrompt.Run()
 	if err != nil {
@@ -66,44 +67,18 @@ func runConfirmSelectPrompt(cmd string) string {
 }
 
 func getCmdFromPackageJSON(path string, recursive bool) (result string) {
-	var pkgSlice models.PackageJsonSlice
+	var pkgFiles p.PackageJsonFiles
 
 	if recursive {
-		readDirectoryContentRecursive(path, &pkgSlice)
+		pkgFiles.ReadDirectoryContentRecursive(path)
 	} else {
-		readDirectoryContent(path, &pkgSlice)
+		pkgFiles.ReadDirectoryContent(path)
 	}
 
-	log.Println(pkgSlice)
-	selectedCmd := runSelectPrompt(pkgSlice)
+	selectedCmd := runSelectPrompt(pkgFiles)
 	confirmedCmd := runConfirmSelectPrompt(selectedCmd)
 
 	return confirmedCmd
-}
-
-func readDirectoryContent(path string, pkgSlice *models.PackageJsonSlice) {
-	var pkgJson models.PackageJson
-
-	file, err := os.ReadFile(path + "package.json")
-	if err == nil {
-		pkgJson.SetScripts(file)
-		pkgSlice.AppendPackageJson(pkgJson)
-	}
-}
-
-func readDirectoryContentRecursive(path string, pkgSlice *models.PackageJsonSlice) {
-	readDirectoryContent(path, pkgSlice)
-
-	entries, err := os.ReadDir(path)
-	if err != nil {
-		log.Fatalln("failed to read directory", err)
-	}
-
-	for _, entry := range entries {
-		if entry.IsDir() && !strings.HasPrefix(entry.Name(), ".") {
-			readDirectoryContentRecursive(path+entry.Name()+"/", pkgSlice)
-		}
-	}
 }
 
 var scriptsCmd = &cobra.Command{
