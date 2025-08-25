@@ -7,7 +7,7 @@ import (
 	"os/exec"
 	"strings"
 
-	"command-of-commands/models"
+	p "command-of-commands/models"
 
 	"github.com/manifoldco/promptui"
 	"github.com/spf13/cobra"
@@ -18,8 +18,8 @@ type CommandObject struct {
 	Value string
 }
 
-func runSelectPrompt(pkgJson models.PackageJson) string {
-	scripts := pkgJson.Scripts
+func runSelectPrompt(pkgFiles p.PackageJsonFiles) string {
+	scripts := pkgFiles.GetAllScripts()
 	keys := make([]string, 0, len(scripts))
 	values := make([]string, 0, len(scripts))
 
@@ -31,6 +31,7 @@ func runSelectPrompt(pkgJson models.PackageJson) string {
 	selectPrompt := promptui.Select{
 		Label: "Select script command:",
 		Items: keys,
+		Size:  20,
 	}
 	index, _, err := selectPrompt.Run()
 	if err != nil {
@@ -65,16 +66,16 @@ func runConfirmSelectPrompt(cmd string) string {
 	return cmd
 }
 
-func getCmdFromPackageJSON() (result string) {
-	file, err := os.ReadFile("package.json")
-	if err != nil {
-		log.Fatalf("No file named 'package.json' in this directory: '%s'\n", err)
+func getCmdFromPackageJSON(path string, recursive bool) (result string) {
+	var pkgFiles p.PackageJsonFiles
+
+	if recursive {
+		pkgFiles.ReadDirectoryContentRecursive(path)
+	} else {
+		pkgFiles.ReadDirectoryContent(path)
 	}
 
-	var pkgJson models.PackageJson
-	pkgJson.SetScripts(file)
-
-	selectedCmd := runSelectPrompt(pkgJson)
+	selectedCmd := runSelectPrompt(pkgFiles)
 	confirmedCmd := runConfirmSelectPrompt(selectedCmd)
 
 	return confirmedCmd
@@ -85,15 +86,20 @@ var scriptsCmd = &cobra.Command{
 	Short: "Lists all script commands from package.json file",
 	Long:  "Lists all script commands from package.json file",
 	Run: func(cmd *cobra.Command, args []string) {
-		command := getCmdFromPackageJSON()
+		recursive, err := cmd.Flags().GetBool("recursive")
+		if err != nil {
+			log.Fatalln("could not read recursive flag properly")
+		}
+
+		command := getCmdFromPackageJSON("./", recursive)
 		/**
 		 * Passing a command as a single string like this is not a safe pattern.
 		 * Risk of shell injection.
 		 * Reconsider this approach.
 		 */
-		err := exec.Command("bash", "-c", command).Run()
-		if err != nil {
-			log.Fatalln("could not run command: ", err)
+		runErr := exec.Command("bash", "-c", command).Run()
+		if runErr != nil {
+			log.Fatalln("could not run command: ", runErr)
 		}
 
 		os.Exit(1)

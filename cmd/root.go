@@ -18,6 +18,9 @@ var root = &cobra.Command{
 
 func init() {
 	root.AddCommand(helloCmd)
+
+	// scriptsCmd.Flags().String("file-path", "", "alternate path to package.json")
+	scriptsCmd.Flags().BoolP("recursive", "r", false, "recursively lists commands")
 	root.AddCommand(scriptsCmd)
 }
 
