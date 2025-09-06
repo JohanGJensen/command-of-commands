@@ -32,6 +32,14 @@ func runSelectPrompt(pkgFiles p.PackageJsonFiles) string {
 		Label: "Select script command:",
 		Items: keys,
 		Size:  20,
+		Keys: &promptui.SelectKeys{
+			Next: promptui.Key{Code: promptui.KeyNext, Display: "↓"},
+			Prev: promptui.Key{Code: promptui.KeyPrev, Display: "↑"},
+		},
+		Templates: &promptui.SelectTemplates{
+			Active:   "👉 {{ . | cyan }}",
+			Selected: "✔ {{ . | green }}",
+		},
 	}
 	index, _, err := selectPrompt.Run()
 	if err != nil {
@@ -43,7 +51,7 @@ func runSelectPrompt(pkgFiles p.PackageJsonFiles) string {
 
 func runConfirmSelectPrompt(cmd string) string {
 	confirmPrompt := promptui.Prompt{
-		Label: fmt.Sprintf("Are you sure you want to run: %s (y/n)", cmd),
+		Label: fmt.Sprintf("%s (y/n)", cmd),
 		Validate: func(input string) error {
 			if input != "y" && input != "n" {
 				return fmt.Errorf("please enter y or n")
